@@ -5,6 +5,7 @@ import astropy.units as u
 from sunpy.data.test import get_dummy_map_from_header_obj, get_header_from_file, get_test_filepath
 from sunpy.map.sources.gong import GONGMagnetogramMap
 from sunpy.time import parse_time
+from sunpy.util.exceptions import SunpyMetadataWarning
 from .helpers import _test_private_date_setters
 
 
@@ -75,3 +76,15 @@ def test_rsun_obs(gong_magnetogram):
 def test_wcs(gong_magnetogram):
     # Smoke test that WCS is valid and can transform from pixels to world coordinates
     gong_magnetogram.pixel_to_world(0*u.pix, 0*u.pix)
+
+
+def test_date_missing_date_obs(gong_magnetogram):
+    # Without DATE-OBS in the metadata, `date` used to call parse_time(None),
+    # which raises ValueError, instead of falling back to GenericMap's
+    # default date logic like every other Map source.
+    del gong_magnetogram.meta['date-obs']
+
+    with pytest.warns(SunpyMetadataWarning, match='Missing metadata for observation time'):
+        date = gong_magnetogram.date
+
+    assert date is not None

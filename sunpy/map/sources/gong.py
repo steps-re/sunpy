@@ -185,7 +185,9 @@ class GONGMagnetogramMap(GenericMap):
                 # Time in header is GPS and there no GPS scale in astropy so parse as TAI and add offset
                 # https://gssc.esa.int/navipedia/index.php/Transformations_between_Time_Systems#GNSS_–_TAI
                 date_obs = (parse_time(date_obs_str, scale='tai') + 19 *u.s).utc
-        return parse_time(date_obs) or super().date
+            else:
+                date_obs = parse_time(date_obs)
+        return date_obs or super().date
 
     def _set_date(self, date):
         if 'time-obs' in self.meta:
