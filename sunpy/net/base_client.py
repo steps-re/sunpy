@@ -293,7 +293,7 @@ class QueryResponseTable(QTable):
         """
         rbp = set(self[0].response_block_map.keys())
         for row in self[1:]:
-            rbp.intersection(row.response_block_map.keys())
+            rbp.intersection_update(row.response_block_map.keys())
         return rbp
 
     def total_size(self):
@@ -312,6 +312,9 @@ class QueryResponseTable(QTable):
             return np.nan * u.byte
         # Find the first power of 3 below the total filesize
         power = 10**(np.floor(np.log10(total.to_value(u.byte)) // 3) * 3)
+        if power == 1.0:
+            # No SI prefix needed for totals under 1 kilobyte.
+            return total.to(u.byte).round(3)
         # Create mapping from prefix value to prefix name
         prefix_dict = {p[2]: p[0][0] for p in u.core.si_prefixes}
         prefix_unit = u.Unit(f'{prefix_dict[power]}byte')
