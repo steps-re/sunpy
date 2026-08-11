@@ -1,6 +1,8 @@
 """
 Test cases for SOHO LASCOMap subclass.
 """
+import copy
+
 import numpy as np
 import pytest
 
@@ -105,3 +107,43 @@ def test_wcs(lasco_map):
     # Smoke test that WCS is valid and can transform from pixels to world coordinates
     with pytest.warns(SunpyMetadataWarning, match='Missing metadata for observer'):
         lasco_map.pixel_to_world(0*u.pix, 0*u.pix)
+
+
+def test_spatial_units_missing_cunit(lasco_map):
+    # CUNIT1/CUNIT2 are optional FITS keywords. Missing them used to crash
+    # with AttributeError: 'NoneType' object has no attribute 'lower'.
+    m = copy.deepcopy(lasco_map)
+    del m.meta['cunit1']
+    del m.meta['cunit2']
+    assert m.spatial_units == SpatialPair(axis1=u.arcsec, axis2=u.arcsec)
+
+
+def test_set_date_no_time_key(lasco_map):
+    # If neither time-obs nor time_obs is present at all, _set_date used to
+    # raise UnboundLocalError because time_key was never assigned.
+    m = copy.deepcopy(lasco_map)
+    m.meta.pop('time-obs', None)
+    m.meta.pop('time_obs', None)
+
+    m._set_date("2012-03-04 05:06:07")
+
+    assert m.date.isot == "2012-03-04T05:06:07.000"
+
+
+def test_set_date_preserves_time_of_day(lasco_map):
+    # When a time-obs key is present, _set_date deleted it and then checked
+    # for its presence *after* deleting it, so the branch that splits the
+    # date and time back into separate keys was unreachable, and the
+    # time-obs key was silently dropped from the metadata.
+    m = copy.deepcopy(lasco_map)
+    m.meta['time-obs'] = 'placeholder'
+    m.meta.pop('time_obs', None)
+    assert 'date-obs' in m.meta
+
+    m._set_date("2012-03-04 05:06:07")
+
+    assert 'time-obs' in m.meta
+    assert m.meta['time-obs'] == '05:06:07.000'
+    assert 'T' not in m.meta['date-obs']
+    assert m.meta['date-obs'] == '2012-03-04'
+    assert m.date.isot == "2012-03-04T05:06:07.000"

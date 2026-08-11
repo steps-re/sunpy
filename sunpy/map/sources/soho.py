@@ -217,8 +217,8 @@ class LASCOMap(GenericMap):
 
     @property
     def spatial_units(self):
-        return SpatialPair(u.Unit(self.meta.get('cunit1').lower()),
-                           u.Unit(self.meta.get('cunit2').lower()))
+        return SpatialPair(u.Unit(self.meta.get('cunit1', 'arcsec').lower()),
+                           u.Unit(self.meta.get('cunit2', 'arcsec').lower()))
 
     @property
     def rotation_matrix(self):
@@ -245,14 +245,15 @@ class LASCOMap(GenericMap):
         return date or super().date
 
     def _set_date(self, date):
+        time_key = None
         if 'time-obs' in self.meta:
             time_key = 'time-obs'
             del self.meta['time-obs']
-        if 'time_obs' in self.meta:
+        elif 'time_obs' in self.meta:
             time_key = 'time_obs'
             del self.meta['time_obs']
         date_key = 'date-obs' if 'date-obs' in self.meta else 'date_obs'
-        if time_key in self.meta:
+        if time_key is not None:
             self.meta[date_key], self.meta[time_key] = parse_time(date).utc.isot.split('T')
         else:
             self.meta[date_key] = parse_time(date).utc.isot
