@@ -319,7 +319,7 @@ class GenericMap(NDData):
                    Reference Coord:\t {refcoord}\
                    """).format(obs=self.observatory, inst=self.instrument, det=self.detector,
                                meas=measurement, wave=wave,
-                               date=self.date.strftime(TIME_FORMAT),
+                               date='Unknown' if self.date is None else self.date.strftime(TIME_FORMAT),
                                dt=dt,
                                dim=u.Quantity(self.dimensions),
                                scale=u.Quantity(self.scale),
@@ -1539,7 +1539,7 @@ class GenericMap(NDData):
 
         pv_values = []
         for k in pv_keys:
-            i, m = int(k[2]), int(k[4:])
+            i, m = (int(part) for part in k[2:].split('_'))
             pv_values.append((i, m, self.meta[k]))
         return pv_values
 

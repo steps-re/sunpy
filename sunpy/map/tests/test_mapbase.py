@@ -107,6 +107,19 @@ def test_wcs_pv():
     assert pv_values[6] == (2, 10, 0.1)
 
 
+def test_pv_values_two_digit_axis_index(aia171_test_map):
+    # _pv_values assumed the axis index was always a single character at a
+    # fixed position (k[2]), even though the regex used to find PV keywords
+    # allows a two-digit axis index (e.g. PV10_1). For such a key the parsing
+    # used to raise ValueError: invalid literal for int() with base 10: '_1'.
+    m = deepcopy(aia171_test_map)
+    m.meta['pv10_1'] = 42
+
+    pv_values = m._pv_values
+
+    assert (10, 1, 42) in pv_values
+
+
 def test_wcs_sip(aia171_test_map):
     wcs1 = aia171_test_map.wcs
     header_sip = wcs1.to_header()
@@ -1416,6 +1429,27 @@ def test_updating_of_naxisi_on_rotate(aia171_test_map):
 def test_wcs_isot(aia171_test_map):
     # Check that a Map WCS returns the time as isot format
     assert aia171_test_map.wcs.to_header()['DATE-OBS'] == '2011-02-15T00:00:00.340'
+
+
+def test_text_summary_date_none(aia171_test_map, mocker):
+    # exposure_time/wavelength/measurement are all guarded against being
+    # None before being formatted into the summary string, but self.date
+    # was not, so a Map subclass whose `date` property legitimately returns
+    # None (unlike GenericMap.date, which never does) would crash with
+    # AttributeError: 'NoneType' object has no attribute 'strftime'.
+    #
+    # `.wcs` (and anything derived from it, like `._coordinate_frame_name`)
+    # separately assumes `self.date` is not None, which is a pre-existing,
+    # broader gap outside the scope of this fix, so it's mocked out here to
+    # isolate the specific guard being tested.
+    mocker.patch.object(type(aia171_test_map), 'date', new_callable=mocker.PropertyMock,
+                        return_value=None)
+    mocker.patch.object(type(aia171_test_map), '_coordinate_frame_name',
+                        new_callable=mocker.PropertyMock, return_value='Unknown')
+
+    summary = aia171_test_map._text_summary()
+
+    assert 'Unknown' in summary
 
 
 def test_repr_html(aia171_test_map):
