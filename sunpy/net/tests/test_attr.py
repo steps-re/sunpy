@@ -380,6 +380,43 @@ def test_asterisk_attrs_time():
     assert "all       All values of this type are supported." in repr(Time)
 
 
+def test_range_xor_other_before_self():
+    # other is entirely before self, so it doesn't overlap at all.
+    # The carve-out should be a no-op and return all of self.
+    self_range = Time(10, 20)
+    other_range = Time(0, 5)
+
+    result = self_range ^ other_range
+
+    assert isinstance(result, Time)
+    assert result.min == 10
+    assert result.max == 20
+
+
+def test_range_xor_other_after_self():
+    # other is entirely after self, so it doesn't overlap at all.
+    self_range = Time(10, 20)
+    other_range = Time(25, 30)
+
+    result = self_range ^ other_range
+
+    assert isinstance(result, Time)
+    assert result.min == 10
+    assert result.max == 20
+
+
+def test_range_xor_other_contained():
+    # other is fully contained inside self, carving out the middle.
+    self_range = Time(10, 20)
+    other_range = Time(12, 15)
+
+    result = self_range ^ other_range
+
+    assert isinstance(result, attr.AttrOr)
+    ranges = {(a.min, a.max) for a in result.attrs}
+    assert ranges == {(10, 12), (15, 20)}
+
+
 def test_AttrComparison():
     attr_comp = attr.AttrComparison("foo", "<", "bar")
     attr_wrapper = attr.ComparisonParamAttrWrapper("foo") < "bar"

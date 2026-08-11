@@ -488,7 +488,7 @@ class Range(DataAttr):
         if self.min < other.min:
             new |= type(self)(self.min, min(other.min, self.max))
         if other.max < self.max:
-            new |= type(self)(other.max, self.max)
+            new |= type(self)(max(self.min, other.max), self.max)
         return new
 
     def __contains__(self, other):
