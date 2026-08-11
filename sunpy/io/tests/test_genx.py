@@ -1,4 +1,6 @@
 import datetime
+import struct
+from collections import OrderedDict
 
 import numpy as np
 import pytest
@@ -60,7 +62,7 @@ def test_value_slice(slice, value):
                                                  ['MYLARRAYD'], np.int32),
                                                 (TESTING['MYSTRUCTURE']['RANDOMNUMBERS'], np.int16),
                                                 (TESTING['MYSTRUCTURE']['MYCARRAY'], complex),
-                                                (TESTING['MYSTRUCTURE']['MYDCARRAY'], np.complex64)])
+                                                (TESTING['MYSTRUCTURE']['MYDCARRAY'], np.complex128)])
 def test_type(myarray, dtype):
     assert myarray.dtype == dtype
 
@@ -70,6 +72,29 @@ def test_date():
     creation = datetime.datetime.strptime(creation_str, '%a %b %d %H:%M:%S %Y')
     assert int(''.join(chr(x)
                        for x in TESTING['MYSTRUCTURE']['RANDOMNUMBERS'][-4:])) == creation.year
+
+
+def test_struct_to_data_double_complex_precision():
+    """
+    IDL type code 9 (DCOMPLEX) must round-trip at double precision.
+
+    ``unpack_complex_double`` correctly reads two 64-bit doubles per value,
+    but the array used to be built with dtype ``np.complex64`` (two 32-bit
+    floats), silently truncating the precision of every DCOMPLEX array on
+    load.
+    """
+    real, imag = 1.123456789012345, -2.987654321098765
+    data = struct.pack('>dddd', real, imag, real, imag)
+    unpacker = genx.SSWUnpacker(data)
+
+    # [dim, n_elements_in_dim0, IDL type code 9 (DCOMPLEX), total_n_elements]
+    skeleton = OrderedDict(X=[1, 2, 9, 2])
+    genx.struct_to_data(unpacker, skeleton)
+
+    assert skeleton['X'].dtype == np.complex128
+    # A float32 round-trip would not reproduce these values exactly.
+    assert skeleton['X'][0] == complex(real, imag)
+    assert skeleton['X'][0].real != np.float32(real)
 
 
 def test_unpacker():

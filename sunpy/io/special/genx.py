@@ -219,7 +219,7 @@ def struct_to_data(xdrdata, subskeleton):
         5: (xdrdata.unpack_double, np.float64),
         6: (xdrdata.unpack_complex, complex),
         7: (xdrdata.unpack_string, None),
-        9: (xdrdata.unpack_complex_double, np.complex64),
+        9: (xdrdata.unpack_complex_double, np.complex128),
         12: (xdrdata.unpack_uint, np.uint16),  # unsign int
         13: (xdrdata.unpack_uint, np.uint32),  # unsign Long int
         14: (xdrdata.unpack_hyper, np.int64),  # Long64
