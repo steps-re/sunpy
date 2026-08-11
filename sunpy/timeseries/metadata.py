@@ -551,7 +551,7 @@ class TimeSeriesMetaData:
         for i in range(0, len(self.metadata)):
             # Update the colnames
             colnames = self.metadata[i][1]
-            colnames = [w.replace(old, new) for w in colnames]
+            colnames = [new if w == old else w for w in colnames]
 
             # Replace values
             self.metadata[i] = (self.metadata[i][0], colnames, self.metadata[i][2])

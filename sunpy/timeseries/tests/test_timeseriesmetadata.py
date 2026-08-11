@@ -486,6 +486,22 @@ def test_rename_column(complex_append_md):
     assert col_renamed_md.metadata[0][1][0] == col_renamed_md.metadata[2][1][0] == col_renamed_md.metadata[3][1][0] == new
 
 
+def test_rename_column_does_not_corrupt_substring_matches(complex_append_md):
+    # _rename_column used str.replace, a substring replacement, instead of
+    # an equality check. complex_append_md.metadata[1] (from basic_4_md) has
+    # columns 'md4_column1'/'md4_column2', which contain 'column1' as a
+    # substring. Renaming 'column1' must not touch them.
+    col_renamed_md = copy.deepcopy(complex_append_md)
+    old = complex_append_md.metadata[0][1][0]
+    assert old == 'column1'
+    new = 'renamed'
+
+    col_renamed_md._rename_column(old, new)
+
+    assert col_renamed_md.metadata[1][1] == complex_append_md.metadata[1][1] == [
+        'md4_column1', 'md4_column2']
+
+
 def test_remove_column(complex_append_md):
     col_removed_md = copy.deepcopy(complex_append_md)
     col = complex_append_md.metadata[0][1][0]
